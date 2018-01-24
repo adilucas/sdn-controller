@@ -43,13 +43,6 @@ class L2Switch(app_manager.RyuApp):
         paths_usage = {'top': 0, 'middle': 0, 'bottom': 0}
         
         rand_path = choice(PATHS)
-        
-        
-        #actions = [ofp_parser.OFPActionOutput(ofp.OFPP_FLOOD)]
-        #out = ofp_parser.OFPPacketOut(
-        #    datapath=dp, buffer_id=msg.buffer_id, in_port=msg.in_port,
-        #    actions=actions)
-        #dp.send_msg(out)
 
     def add_flow(self, datapath, in_port, dst, src, actions):
         ofproto = datapath.ofproto
@@ -65,3 +58,28 @@ class L2Switch(app_manager.RyuApp):
             flags=ofproto.OFPFF_SEND_FLOW_REM, actions=actions)
         
         datapath.send_msg(mod)
+        
+    def send_port_stats_request(self, datapath):
+        ofp = dp.ofproto
+        ofp_parser = dp.ofproto_parser
+        req = ofp_parser.OFPPortStatsRequest(dp, 0, ofp.OFPP_ANY)
+        dp.send_msg(req)
+
+    @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
+    def port_stats_reply_handler(self, ev):
+        for stat in ev.msg.body:
+          self.logger.info("\tport_no=%d "
+            "rx_packets=%d tx_packets=%d "
+            "\n \trx_bytes=%d tx_bytes=%d "
+            "rx_dropped=%d tx_dropped=%d "
+            "rx_errors=%d tx_errors=%d "
+            "\n \trx_frame_err=%d rx_over_err=%d rx_crc_err=%d "
+            "\n \tcollisions=%d duration_sec=%d duration_nsec=%d" %
+            (stat.port_no,
+              stat.rx_packets, stat.tx_packets,
+              stat.rx_bytes, stat.tx_bytes,
+              stat.rx_dropped, stat.tx_dropped,
+              stat.rx_errors, stat.tx_errors,
+              stat.rx_frame_err, stat.rx_over_err,
+              stat.rx_crc_err, stat.collisions,
+              stat.duration_sec, stat.duration_nsec))
