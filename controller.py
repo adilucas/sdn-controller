@@ -50,3 +50,18 @@ class L2Switch(app_manager.RyuApp):
         #    datapath=dp, buffer_id=msg.buffer_id, in_port=msg.in_port,
         #    actions=actions)
         #dp.send_msg(out)
+
+    def add_flow(self, datapath, in_port, dst, src, actions):
+        ofproto = datapath.ofproto
+
+        match = datapath.ofproto_parser.OFPMatch(
+            in_port=in_port,
+            dl_dst=haddr_to_bin(dst), dl_src=haddr_to_bin(src))
+
+        mod = datapath.ofproto_parser.OFPFlowMod(
+            datapath=datapath, match=match, cookie=0,
+            command=ofproto.OFPFC_ADD, idle_timeout=0, hard_timeout=0,
+            priority=ofproto.OFP_DEFAULT_PRIORITY,
+            flags=ofproto.OFPFF_SEND_FLOW_REM, actions=actions)
+        
+        datapath.send_msg(mod)
